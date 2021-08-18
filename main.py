@@ -1,4 +1,5 @@
 import pathlib
+import shutil
 import subprocess
 import platform
 
@@ -11,6 +12,8 @@ NEW_IP_PATH = REPO_PATH / 'new-ip'
 HOSTNAME_PATH = REPO_PATH / 'hostname.txt'
 ADD_WATCH_CMD = 'watch'
 ADD_HOST_COMMAND = "add-host"
+ASSUME_YES = True
+DEFAULT_REMOTE = 'git@github.com:marceloslacerda/test-conf-keep.git'
 
 
 def test_host_dir():
@@ -45,7 +48,7 @@ def test_host_dir():
 
 def config_host():
     """To add another host to the repository"""
-    print("Setting up host")
+    print("Configuring host")
     if not REPO_PATH.is_dir():
         remote_url = get_remote()
         print(f'Cloning repository {remote_url}')
@@ -60,20 +63,22 @@ def config_host():
     HOSTNAME_PATH.write_text(host_name)
     work_path = REPO_PATH / host_name
     if work_path.is_dir():
-        print(
-            f"Theres already a configuration directory for the host "
-            f"{host_name}. Nothing to do.")
-        exit(0)
-    else:
-        print("Creating a configuration directory for the host")
-        subprocess.run(['git', 'checkout', '-b', host_name], check=True, cwd=REPO_PATH)
-        work_path.mkdir()
+        if is_yes("Theres already a configuration directory for the host {host_name}. Do you want to delete it"):
+            shutil.rmtree(work_path)
+            print("Removed.")
+        else:
+            print(f"Nothing to do. Exiting.")
+            exit(0)
+
+    print("Creating a configuration directory for the host")
+    subprocess.run(['git', 'checkout', '-b', host_name], check=True, cwd=REPO_PATH)
+    work_path.mkdir()
     blank_path = (work_path / 'blank.txt')
     blank_path.touch()
-    subprocess.run(['git', 'add', blank_path], check=True, cwd=REPO_PATH)
+    subprocess.run(['git', 'add', blank_path.absolute()], check=True, cwd=REPO_PATH)
     subprocess.run(
         ['git', 'commit', '-m', f'Host {host_name} added to the repo'],
-        check=True)
+        check=True, cwd=REPO_PATH)
     subprocess.run(['git', 'push', 'origin', host_name], check=True, cwd=REPO_PATH)
     print(
         f"The host {host_name} has been setup for tracking configuration "
@@ -91,20 +96,20 @@ hostname.txt
 
 def bootstrap_repository():
     """To create the repository"""
-    if REPO_PATH.is_dir():
-        yes = input('Repository already exists do you want to delete it(y/n)? ')
-        if yes == 'y':
-            REPO_PATH.rmdir()
+    print("Bootstrapping repository")
+    if (REPO_PATH / '.git').is_dir():
+        if is_yes('Repository already exists do you want to delete it'):
+            shutil.rmtree(REPO_PATH)
         else:
             print("Aborting bootstrap")
             exit(1)
+    REPO_PATH.mkdir(exist_ok=True, parents=True)
     subprocess.run(['git', 'init'], check=True, cwd=REPO_PATH)
-    path = (REPO_PATH / '.gitignore')
-    path.write_text(get_gitignore())
-    subprocess.run(['git', 'add', path], check=True, cwd=REPO_PATH)
+    (REPO_PATH / '.gitignore').write_text(get_gitignore())
+    subprocess.run(['git', 'add', '.gitignore'], check=True, cwd=REPO_PATH)
     remote_url = get_remote()
     subprocess.run(['git', 'remote', 'add', 'origin', remote_url], check=True, cwd=REPO_PATH)
-    subprocess.run(['git', 'commit', '-m', 'Initial commit', remote_url], check=True,
+    subprocess.run(['git', 'commit', '-m', 'Initial commit'], check=True,
                    cwd=REPO_PATH)
     subprocess.run(['git', 'push', 'origin', 'master'],
                    check=True,
@@ -112,9 +117,28 @@ def bootstrap_repository():
     print(f"Repository bootstrapped. You can now add new hosts to the repository with {ADD_HOST_COMMAND}.")
 
 
+def is_yes(message):
+    if ASSUME_YES:
+        return True
+    if not message.endswith('?'):
+        message = message + ' (y/n)? '
+    while True:
+        res = input(message) == 'y'
+        if res == 'y' or res == 'yes':
+            return True
+        elif res == 'n' or 'no':
+            return False
+        else:
+            print(f'"{res}" is not "y" or "n"')
+
+
 def get_remote():
-    return input("Please type the remote repository url (ssh): ")
+    if not DEFAULT_REMOTE:
+        return input("Please type the remote repository url (ssh): ")
+    else:
+        return DEFAULT_REMOTE
 
 
 if __name__ == '__main__':
+    # bootstrap_repository()
     config_host()
