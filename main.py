@@ -1,4 +1,7 @@
+import json
+import os
 import pathlib
+import re
 import shutil
 import subprocess
 
@@ -6,49 +9,55 @@ from settings import (
     REPO_PATH,
     HOST_NAME,
     SERVICE_NAME,
-    OLD_IP_PATH,
     NEW_IP_PATH,
     HOSTNAME_PATH,
     ADD_WATCH_CMD,
     ADD_HOST_COMMAND,
     ASSUME_YES,
     DEFAULT_REMOTE,
+    ORIGINAL_IP_PATH,
 )
 
 from git_commands import git_command, git_push, git_commit_am, git_add
 
 
-def test_host_dir():
-    print("Deciding host dir")
-    with NEW_IP_PATH.open("w") as new_ip_file:
-        subprocess.run(["ip", "a"], stdout=new_ip_file, encoding="utf-8")
-    if not OLD_IP_PATH.exists():
-        print(f"{SERVICE_NAME} is being run for the first time with {REPO_PATH}")
-        NEW_IP_PATH.rename(OLD_IP_PATH)
-        host_name = input(
-            f"{SERVICE_NAME} guessed host name as {HOST_NAME}.\nPress enter to"
-            f"accept it or type a different hostname: "
-        )
-        if not host_name:
-            host_name = HOST_NAME
-        HOSTNAME_PATH.write_text(host_name)
+def is_ip_changed():
+    original_ip_out = json.loads(ORIGINAL_IP_PATH.read_text())
+    new_ip_out = get_ip_interfaces()
+    if not ORIGINAL_IP_PATH.is_file():
+        print("Original was removed. Adding a new one")
+        ORIGINAL_IP_PATH.write_text(new_ip_out)
+        return False
     else:
-        if NEW_IP_PATH.read_text() == OLD_IP_PATH.read_text():
-            print(
-                "Device interfaces have not changed. Assuming that the host"
-                "isn't a clone"
-            )
-            host_name = HOSTNAME_PATH.read_text()
+        if original_ip_out == new_ip_out:
+            print("ip output haven't changed.")
+            return False
         else:
-            host_name = HOSTNAME_PATH.read_text()
-            new_host_name = input(
-                f"Host interfaces changed! Please type the new hostname. "
-                f"Press enter for {host_name}"
+            print(
+                f"ip output changed! Please ensure that {get_work_path().name} is the name of this host, change"
+                f" {HOSTNAME_PATH} accordingly and remove {ORIGINAL_IP_PATH} once you are done."
             )
-            if new_host_name:
-                host_name = new_host_name
-            HOSTNAME_PATH.write_text(host_name)
-            NEW_IP_PATH.rename(OLD_IP_PATH)
+            NEW_IP_PATH.write_text(json.dumps(new_ip_out))
+            subprocess.run(
+                ["diff", ORIGINAL_IP_PATH.absolute(), NEW_IP_PATH.absolute()]
+            )
+            return True
+
+
+def get_ip_interfaces():
+    out = subprocess.run(["ip", "a"], stdout=subprocess.PIPE, encoding="utf-8").stdout
+    interfaces = {}
+    ips = None
+    for line in out.splitlines():
+        line = line.strip()
+        match = re.match(r"\d+: (\w+): ", line)
+        if match:
+            ips = []
+            interfaces[match.group(1)] = ips
+        else:
+            if line.startswith("inet"):
+                ips.append(line.split(maxsplit=2)[1])
+    return interfaces
 
 
 def config_host():
@@ -56,14 +65,19 @@ def config_host():
     print("Configuring host")
     if not REPO_PATH.is_dir():
         remote_url = get_remote()
-        print(f"Cloning repository {remote_url}")
+        print(f"Cloning repository {remote_url}.")
         subprocess.run(["git", "clone", remote_url, REPO_PATH], check=True)
     else:
         pass  # No need to pull until we know the branch
-    host_name = input(f"Please input the host, hostname. Press enter for {HOST_NAME}: ")
+    if ASSUME_YES:
+        host_name = None
+    else:
+        host_name = input(
+            f"Please input the host, hostname. Press enter for {HOST_NAME}: "
+        )
     if not host_name:
         host_name = HOST_NAME
-    print(f"Continuing with hostname = {host_name}")
+    print(f"Continuing with hostname = {host_name}.")
     HOSTNAME_PATH.write_text(host_name)
     work_path = REPO_PATH / host_name
     if work_path.is_dir():
@@ -75,25 +89,36 @@ def config_host():
         else:
             print(f"Nothing to do. Exiting.")
 
-    print("Creating a configuration directory for the host")
-    git_command("checkout", "-b", host_name)
+    print("Creating a configuration directory for the host.")
+    try:
+        git_command("checkout", "-b", host_name)
+    except subprocess.CalledProcessError:
+        if is_yes(
+            "Error encountered while creating and changing branches. Do you wish to continue anyway?"
+        ):
+            git_command("checkout", host_name)
+        else:
+            raise
     work_path.mkdir()
     tracked_path = get_tracked_file_path(work_path)
     tracked_path.touch()
+    with ORIGINAL_IP_PATH.open("w") as original_ip:
+        original_ip.write(json.dumps(get_ip_interfaces()))
     git_add(tracked_path.absolute())
+    git_add(ORIGINAL_IP_PATH.absolute())
     git_commit_am(f"Host {host_name} added to the repo")
     git_push(host_name)
     print(
         f"The host {host_name} has been setup for tracking configuration "
         f"changes. Add new files or directories to track with the command "
-        f"{ADD_WATCH_CMD}"
+        f"{ADD_WATCH_CMD}."
     )
 
 
 def get_gitignore():
-    return """new-ip
-old-ip
+    return """new-ip.txt
 hostname.txt
+conf-keep.lock
 """
 
 
@@ -104,7 +129,7 @@ def bootstrap_repository():
         if is_yes("Repository already exists do you want to delete it"):
             shutil.rmtree(REPO_PATH)
         else:
-            raise FileExistsError("Aborting bootstrap")
+            raise FileExistsError("Aborting bootstrap.")
     REPO_PATH.mkdir(exist_ok=True, parents=True)
     git_command("init")
     (REPO_PATH / ".gitignore").write_text(get_gitignore())
@@ -120,6 +145,7 @@ def bootstrap_repository():
 
 def is_yes(message):
     if ASSUME_YES:
+        print(message + "?")
         return True
     if not message.endswith("?"):
         message = message + " (y/n)? "
@@ -144,24 +170,65 @@ def get_work_path():
     if HOSTNAME_PATH.is_file():
         return REPO_PATH / HOSTNAME_PATH.read_text()
     else:
-        raise AttributeError("Host not configured")
+        raise AttributeError("Host not configured.")
 
 
 def get_tracked_file_path(work_path):
     return work_path / "tracked.txt"
 
 
+def with_test_repo(func):
+    def wrapper(*args, **kwargs):
+        lock_file_path = get_work_path() / "conf-keep.lock"
+        if is_ip_changed():
+            pass  # Notifications already printed
+        elif lock_file_path.is_file():
+            print("Another command is running in this repository.")
+        else:
+            lock_file_path.touch()
+            func(*args, **kwargs)
+            os.remove(lock_file_path)
+
+    return wrapper
+
+
+@with_test_repo
 def track_dir(directory):
     work_path = get_work_path()
     tracked_path = get_tracked_file_path(work_path)
+    if str(directory.absolute()) != str(directory):
+        raise AttributeError(f"The directory {directory} must be an absolute path.")
+    if any(
+        str(directory.absolute()) == path
+        for path in tracked_path.read_text().splitlines()
+    ):
+        print(f"The directory {directory} is already being tracked. Nothing to do.")
+        return
     with tracked_path.open("at") as tracked:
         tracked.write(str(directory) + "\n")
     git_add(tracked_path.absolute())
-    git_commit_am(f"New directory {directory} being tracked")
+    git_commit_am(f"New directory {directory} being tracked.")
     git_push(work_path.name)
 
 
+@with_test_repo
+def watchdog():
+    work_path = get_work_path()
+    tracked_path = get_tracked_file_path(work_path)
+    with tracked_path.open() as tracked:
+        to_sync = tracked.readlines()
+    for path in to_sync:
+        subprocess.run(
+            ["rsync", "-avz", path, pathlib.Path(path).name], check=True, cwd=work_path
+        )
+    # get changes
+    # commit changes
+
+
 if __name__ == "__main__":
+    subprocess.run(["rm", "-rf", str(DEFAULT_REMOTE)])
+    DEFAULT_REMOTE.mkdir()
+    subprocess.run(["git", "init", "--bare"], cwd=DEFAULT_REMOTE)
     bootstrap_repository()
     config_host()
     track_dir(pathlib.Path("/etc"))
