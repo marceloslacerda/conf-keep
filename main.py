@@ -15,7 +15,7 @@ from settings import (
     ADD_HOST_COMMAND,
     ASSUME_YES,
     DEFAULT_REMOTE,
-    ORIGINAL_IP_PATH,
+    ORIGINAL_IP_PATH, IGNORE_SYNC_ERRORS,
 )
 
 from git_commands import git_command, git_push, git_commit_am, git_add
@@ -215,14 +215,38 @@ def track_dir(directory):
 def watchdog():
     work_path = get_work_path()
     tracked_path = get_tracked_file_path(work_path)
-    with tracked_path.open() as tracked:
-        to_sync = tracked.readlines()
+    to_sync = tracked_path.read_text().splitlines()
     for path in to_sync:
         subprocess.run(
-            ["rsync", "-avz", path, pathlib.Path(path).name], check=True, cwd=work_path
+            ["rsync", "-avz", path, pathlib.Path(path).name], check=not IGNORE_SYNC_ERRORS, cwd=work_path
         )
-    # get changes
-    # commit changes
+    status = git_command("status", '-s', get_stdout=True).splitlines()
+    commit_message_body = ""
+    some_added = False
+    some_changed = False
+    for change in status[:5]:
+        change = str(change.strip(), 'utf-8').split(maxsplit=1)
+        if change[0] == "??":
+            some_added = True
+            commit_message_body += f"\nFile {change[1]} added to the repository"
+        elif change[0] == "M":
+            some_changed = True
+            commit_message_body += f"\nFile {change[1]} was changed"
+    if len(status) > 5:
+        commit_message_body += f"\nThere are more {len(status)-5} changes..."
+    if some_added and some_changed:
+        commit_message_head = "Some files were added and changed"
+    elif some_added:
+        commit_message_head = "Some file(s) were added"
+    elif some_changed:
+        commit_message_head = "Some file(s) were changed"
+    else:
+        print("Nothing changed")
+        return
+    git_add(".")
+    git_command('commit',  '-m', commit_message_head, '-m', commit_message_body)
+    git_push(work_path.name)
+    print(f'{len(status)} changes commited')
 
 
 if __name__ == "__main__":
@@ -232,3 +256,4 @@ if __name__ == "__main__":
     bootstrap_repository()
     config_host()
     track_dir(pathlib.Path("/etc"))
+    watchdog()

@@ -12,3 +12,4 @@ ADD_WATCH_CMD = "watch"
 ADD_HOST_COMMAND = "add-host"
 ASSUME_YES = True
 DEFAULT_REMOTE = pathlib.Path("./repo-origin/").absolute()
+IGNORE_SYNC_ERRORS = True
