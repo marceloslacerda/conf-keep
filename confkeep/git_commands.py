@@ -9,7 +9,9 @@ def git_command(*args, get_stdout=False):
     if not get_stdout:
         subprocess.run([str(x) for x in ls], check=True, cwd=REPO_PATH)
     else:
-        cp = subprocess.run([str(x) for x in ls], check=True, cwd=REPO_PATH, stdout=subprocess.PIPE)
+        cp = subprocess.run(
+            [str(x) for x in ls], check=True, cwd=REPO_PATH, stdout=subprocess.PIPE
+        )
         return cp.stdout
 
 

@@ -8,14 +8,18 @@ import subprocess
 from settings import (
     REPO_PATH,
     HOST_NAME,
-    SERVICE_NAME,
     NEW_IP_PATH,
     HOSTNAME_PATH,
-    ADD_WATCH_CMD,
+    ADD_WATCH_COMMAND,
     ADD_HOST_COMMAND,
     ASSUME_YES,
     DEFAULT_REMOTE,
-    ORIGINAL_IP_PATH, IGNORE_SYNC_ERRORS,
+    ORIGINAL_IP_PATH,
+    IGNORE_SYNC_ERRORS,
+    CRON_FILE_PATH,
+    CK_USER,
+    SYNC_COMMAND,
+    CRON_SCHEDULE,
 )
 
 from git_commands import git_command, git_push, git_commit_am, git_add
@@ -111,7 +115,7 @@ def config_host():
     print(
         f"The host {host_name} has been setup for tracking configuration "
         f"changes. Add new files or directories to track with the command "
-        f"{ADD_WATCH_CMD}."
+        f"{ADD_WATCH_COMMAND}."
     )
 
 
@@ -133,7 +137,7 @@ def bootstrap_repository():
     REPO_PATH.mkdir(exist_ok=True, parents=True)
     git_command("init")
     (REPO_PATH / ".gitignore").write_text(get_gitignore())
-    git_add(".gitignore")
+    git_add("../.gitignore")
     remote_url = get_remote()
     git_command("remote", "add", "origin", remote_url)
     git_commit_am("Initial commit")
@@ -218,14 +222,16 @@ def watchdog():
     to_sync = tracked_path.read_text().splitlines()
     for path in to_sync:
         subprocess.run(
-            ["rsync", "-avz", path, pathlib.Path(path).name], check=not IGNORE_SYNC_ERRORS, cwd=work_path
+            ["rsync", "-avz", path, pathlib.Path(path).name],
+            check=not IGNORE_SYNC_ERRORS,
+            cwd=work_path,
         )
-    status = git_command("status", '-s', get_stdout=True).splitlines()
+    status = git_command("status", "-s", get_stdout=True).splitlines()
     commit_message_body = ""
     some_added = False
     some_changed = False
     for change in status[:5]:
-        change = str(change.strip(), 'utf-8').split(maxsplit=1)
+        change = str(change.strip(), "utf-8").split(maxsplit=1)
         if change[0] == "??":
             some_added = True
             commit_message_body += f"\nFile {change[1]} added to the repository"
@@ -243,17 +249,13 @@ def watchdog():
     else:
         print("Nothing changed")
         return
-    git_add(".")
-    git_command('commit',  '-m', commit_message_head, '-m', commit_message_body)
+    git_add("..")
+    git_command("commit", "-m", commit_message_head, "-m", commit_message_body)
     git_push(work_path.name)
-    print(f'{len(status)} changes commited')
+    print(f"{len(status)} changes commited")
 
 
-if __name__ == "__main__":
-    subprocess.run(["rm", "-rf", str(DEFAULT_REMOTE)])
-    DEFAULT_REMOTE.mkdir()
-    subprocess.run(["git", "init", "--bare"], cwd=DEFAULT_REMOTE)
-    bootstrap_repository()
-    config_host()
-    track_dir(pathlib.Path("/etc"))
-    watchdog()
+def install_cron():
+    print("Installing cron file")
+    CRON_FILE_PATH.write_text(f"{CRON_SCHEDULE} {CK_USER} conf-keep {SYNC_COMMAND}\n")
+    print(f"Cronfile installed at {CRON_FILE_PATH}")
