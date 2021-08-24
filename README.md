@@ -39,5 +39,5 @@ synchronization command.
    This is the command that the *cronfile* calls. You normally don't run this manually.
 
 Each command (except for `sync`) is interactive and will guide you through the configuration process.
-If you want to run the command *non-interactively* check [confkeep/settings.py](blob/master/confkeep/settings.py) to know all the possible environment
+If you want to run the command *non-interactively* check [confkeep/settings.py](confkeep/settings.py) to know all the possible environment
 variables you can pass.
