@@ -20,8 +20,8 @@ CRON_FILE_PATH = pathlib.Path("/etc/cron.d/conf-keep")
 
 def with_test_repo(func):
     def wrapper(*args, **kwargs):
-        if 'self' in kwargs:
-            obj = kwargs['self']
+        if "self" in kwargs:
+            obj = kwargs["self"]
         else:
             obj = args[0]
         lock_file_path = obj.repo_path / "conf-keep.lock"
@@ -37,6 +37,7 @@ def with_test_repo(func):
                 os.remove(lock_file_path)
 
     return wrapper
+
 
 class CKWrapper:
     def __init__(self):
