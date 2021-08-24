@@ -5,7 +5,7 @@ import confkeep_commands
 VERSION = '0.1'
 help_txt = f"""#{settings.SERVICE_NAME}
 
-A multi-host, multi-path etckeep.
+A multi-host, multi-path etckeeper alternative.
 
 {settings.SERVICE_NAME} allows you to continuously keep track of changes to your configuration files
 wherever they are across multiple hosts. It uses cron to periodically synchronize a copy of the configuration
