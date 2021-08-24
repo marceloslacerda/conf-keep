@@ -1,6 +1,6 @@
 import subprocess
 
-from settings import REPO_PATH
+from confkeep.settings import REPO_PATH
 
 
 def git_command(*args, get_stdout=False):
