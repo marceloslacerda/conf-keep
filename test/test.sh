@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/bin/sh -e
 dir="$(dirname $0)/.."
 cd "$dir"
 rm -rf repo-*
