@@ -49,7 +49,11 @@ if __name__ == "__main__":
     elif command == confkeep_commands.ADD_WATCH_COMMAND:
         ckwrapper.track_dir()
     elif command == confkeep_commands.INSTALL_CRON_COMMAND:
-        confkeep_commands.install_cron()
+        ckwrapper.install_cron()
     elif command == confkeep_commands.SYNC_COMMAND:
         ckwrapper.watchdog()
+    else:
+        print(f"Unknown command {command}\n")
+        print(help_txt)
+        exit(1)
     exit(0)

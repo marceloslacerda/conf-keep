@@ -4,10 +4,13 @@ import pathlib
 import re
 import shutil
 import subprocess
+import sys
 
 from confkeep import settings
 
-from confkeep.git_commands import git_command, git_push, git_commit_am, git_add
+SCRIPT_TEMPLATE = """#!/bin/sh
+export REPO_PATH={repo_path}
+{python_interpreter} -m conf-keep sync > /var/log/conf-keep-sync.log 2>&1"""
 
 SERVICE_NAME = "conf-keep"
 ADD_WATCH_COMMAND = "watch"
@@ -81,6 +84,8 @@ class CKWrapper:
             self._host_name = input(
                 f"Please input the host, hostname. Press enter for {settings.HOST_NAME}: "
             )
+            if not self._host_name:
+                self._host_name = settings.HOST_NAME
         self.hostname_path.write_text(self._host_name)
 
     @property
@@ -137,6 +142,7 @@ class CKWrapper:
         else:
             pass  # No need to pull until we know the branch
         self.initial_hostname_setup()
+        print(self.work_path)
         if self.work_path.is_dir():
             if is_yes(
                 f"Theres already a configuration directory for the host {self.hostname}. Do you want to delete it"
@@ -144,16 +150,16 @@ class CKWrapper:
                 shutil.rmtree(self.work_path)
                 print("Removed.")
             else:
-                print(f"Nothing to do. Exiting.")
+                raise FileExistsError("Aborted by user.")
 
         print("Creating a configuration directory for the host.")
         try:
-            git_command("checkout", "-b", self.hostname)
+            self.git_command("checkout", "-b", self.hostname)
         except subprocess.CalledProcessError:
             if is_yes(
                 "Error encountered while creating and changing branches. Do you wish to continue anyway?"
             ):
-                git_command("checkout", self.hostname)
+                self.git_command("checkout", self.hostname)
             else:
                 raise
         self.work_path.mkdir()
@@ -161,10 +167,10 @@ class CKWrapper:
         tracked_path.touch()
         with self.original_ip_path.open("w") as original_ip:
             original_ip.write(json.dumps(get_ip_interfaces()))
-        git_add(tracked_path.absolute())
-        git_add(self.original_ip_path.absolute())
-        git_commit_am(f"Host {self.hostname} added to the repo")
-        git_push(self.hostname)
+        self.git_add(tracked_path.absolute())
+        self.git_add(self.original_ip_path.absolute())
+        self.git_commit_am(f"Host {self.hostname} added to the repo")
+        self.git_push(self.hostname)
         print(
             f"The host {self.hostname} has been setup for tracking configuration "
             f"changes. Add new files or directories to track with the command "
@@ -175,30 +181,33 @@ class CKWrapper:
         """To create the repository"""
         print("Bootstrapping repository")
         if (self.repo_path / ".git").is_dir():
-            if is_yes("Repository already exists do you want to delete it"):
-                shutil.rmtree(self.repo_path)
-            else:
-                raise FileExistsError("Aborting bootstrap.")
+            raise FileExistsError("Repository already exists. Aborting bootstrap.")
         self.repo_path.mkdir(exist_ok=True, parents=True)
-        git_command("init")
+        self.git_command("init")
         gitignore_path = self.repo_path / ".gitignore"
         gitignore_path.write_text(get_gitignore())
-        git_add(gitignore_path)
+        self.git_add(gitignore_path)
         remote_url = self.remote
-        git_command("remote", "add", "origin", remote_url)
-        git_commit_am("Initial commit")
-        git_push("master")
+        self.git_command("remote", "add", "origin", remote_url)
+        self.git_commit_am("Initial commit")
+        self.git_push("master")
         print(
             f"Repository bootstrapped. You can now add new hosts to the repository with {ADD_HOST_COMMAND}."
         )
+        print(
+            "For your convenience you can run the following commands to avoid some prompts:"
+        )
+        print()
+        print(f"export REPO_PATH={self.repo_path}")
+        print(f"export REMOTE={self.remote}")
 
     @with_test_repo
     def track_dir(self):
         if not settings.MONITORED_PATH:
-            directory = input("What do you want to start tracking? ")
+            directory = pathlib.Path(input("What do you want to start tracking? "))
         else:
             directory = settings.MONITORED_PATH
-        if str(directory.absolute()) != str(directory):
+        if not directory.is_absolute():
             raise AttributeError(f"The directory {directory} must be an absolute path.")
         if any(
             str(directory.absolute()) == path
@@ -208,9 +217,9 @@ class CKWrapper:
             return
         with self.tracked_file_path.open("at") as tracked:
             tracked.write(str(directory) + "\n")
-        git_add(self.tracked_file_path.absolute())
-        git_commit_am(f"New directory {directory} being tracked.")
-        git_push(self.work_path.name)
+        self.git_add(self.tracked_file_path.absolute())
+        self.git_commit_am(f"New directory {directory} being tracked.")
+        self.git_push(self.work_path.name)
 
     @with_test_repo
     def watchdog(self):
@@ -221,7 +230,7 @@ class CKWrapper:
                 check=not settings.IGNORE_SYNC_ERRORS,
                 cwd=self.work_path,
             )
-        status = git_command("status", "-s", get_stdout=True).splitlines()
+        status = self.git_command("status", "-s", get_stdout=True).splitlines()
         commit_message_body = ""
         some_added = False
         some_changed = False
@@ -244,18 +253,47 @@ class CKWrapper:
         else:
             print("Nothing changed")
             return
-        git_add(".")
-        git_command("commit", "-m", commit_message_head, "-m", commit_message_body)
-        git_push(self.work_path.name)
+        self.git_add(".")
+        self.git_command("commit", "-m", commit_message_head, "-m", commit_message_body)
+        self.git_push(self.work_path.name)
         print(f"{len(status)} changes commited")
 
+    def git_command(self, *args, get_stdout=False):
+        ls = ["git"]
+        ls.extend(args)
+        if not get_stdout:
+            subprocess.run([str(x) for x in ls], check=True, cwd=self.repo_path)
+        else:
+            cp = subprocess.run(
+                [str(x) for x in ls],
+                check=True,
+                cwd=self.repo_path,
+                stdout=subprocess.PIPE,
+            )
+            return cp.stdout
 
-def install_cron():
-    print("Installing cron file")
-    CRON_FILE_PATH.write_text(
-        f"{settings.CRON_SCHEDULE} {settings.CK_USER} conf-keep {SYNC_COMMAND}\n"
-    )
-    print(f"Cronfile installed at {CRON_FILE_PATH}")
+    def git_commit_am(self, message):
+        self.git_command("commit", "-m", message)
+
+    def git_push(self, branch):
+        self.git_command("push", "origin", branch)
+
+    def git_add(self, file):
+        self.git_command("add", file)
+
+    def install_cron(self):
+        print("Installing cron file")
+        script_path = pathlib.Path("/usr/local/bin/conf-keep-sync")
+        script_path.write_text(
+            SCRIPT_TEMPLATE.format(
+                repo_path=self.repo_path, python_interpreter=sys.executable
+            )
+        )
+        script_path.chmod(755)
+        CRON_FILE_PATH.write_text(
+            f"{settings.CRON_SCHEDULE} {settings.CK_USER} {script_path}\n"
+        )
+        print(f"Cronfile installed at {CRON_FILE_PATH}")
 
 
 def get_ip_interfaces():
