@@ -63,6 +63,6 @@ if __name__ == "__main__":
             print(error.args[0])
         exit(1)
     except KeyboardInterrupt:
-        print("Aborted by the user")
+        print("\nAborted by the user")
         exit(1)
     exit(0)
