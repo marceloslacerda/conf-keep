@@ -57,12 +57,13 @@ Here's an example:
 
 ```bash
 sudo useradd -m -s /bin/bash conf-keep
-sudo chown conf-keep /var/backups/local-repo-dir
+sudo touch /usr/local/bin/conf-keep-sync /etc/cron.d/conf-keep
+sudo chown conf-keep /var/backups/local-repo-dir /usr/local/bin/conf-keep-sync /etc/cron.d/conf-keep
 sudo su conf-keep
 git config --global user.email "user@test.com"
 git config --global user.name "User Name"
 # This last step assumes that you will add a public ssh key to your git host. Adjust it to your necessities.
 ssh-keygen
 cat ~/.ssh/id_rsa.pub
- 
+# Follow the instructions this README.md Usage section.
 ```
