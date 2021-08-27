@@ -186,7 +186,9 @@ class CKWrapper:
         """To create the repository"""
         print("Bootstrapping repository")
         if (self.repo_path / ".git").is_dir():
-            raise ConfKeepError("Repository already exists. Aborting bootstrap.")
+            raise ConfKeepError("Repository already exists. Aborting bootstrap.\n"
+                                f"You can avoid this error by running the following at your own peril.\n"
+                                f"rm -rf {self.repo_path / '.git*'} {self.repo_path / '*'}")
         self.repo_path.mkdir(exist_ok=True, parents=True)
         self.git_command("init")
         gitignore_path = self.repo_path / ".gitignore"

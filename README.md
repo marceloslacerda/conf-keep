@@ -58,9 +58,11 @@ Here's an example:
 ```bash
 sudo useradd -m -s /bin/bash conf-keep
 sudo chown conf-keep /var/backups/local-repo-dir
-sudo -u conf-keep git config --global user.email "user@test.com"
-sudo -u conf-keep git config --global user.name "User Name"
+sudo su conf-keep
+git config --global user.email "user@test.com"
+git config --global user.name "User Name"
 # This last step assumes that you will add a public ssh key to your git host. Adjust it to your necessities.
-sudo -u conf-keep ssh-keygen
-sudo cat /home/conf-keep/.ssh/id_rsa.pub
+ssh-keygen
+cat ~/.ssh/id_rsa.pub
+ 
 ```
