@@ -1,6 +1,7 @@
 #!/bin/sh -e
 dir="$(dirname $0)/.."
 cd "$dir"
+dir="$(pwd)"
 rm -rf repo-*
 mkdir repo-origin
 cd repo-origin

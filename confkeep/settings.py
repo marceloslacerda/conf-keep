@@ -1,3 +1,4 @@
+import os
 import pathlib
 import platform
 from confkeep.util import get_path_environ
@@ -28,6 +29,6 @@ IGNORE_SYNC_ERRORS = environ.get("IGNORE_SYNC_ERRORS", False)
 # The path to the local copy of your changes. Always use absolute paths to avoid errors.
 REPO_PATH = get_path_environ("REPO_PATH", None)
 # The remote repository where you will be storing your history.
-REMOTE = get_path_environ("REMOTE", None)
+REMOTE = os.environ.get("REMOTE", None)
 # The local file/directory that you want to track
 MONITORED_PATH = get_path_environ("MONITORED_PATH", None)
