@@ -11,6 +11,7 @@ from confkeep import settings
 SCRIPT_TEMPLATE = """#!/bin/sh
 export REPO_PATH='{repo_path}'
 {ignore_sync_errors}
+{ignore_ip_changes}
 cd {project_path}
 {python_interpreter} -m confkeep sync > /var/log/conf-keep-sync.log 2>&1
 """
@@ -317,12 +318,17 @@ class CKWrapper:
             ignore_sync_errors = "export IGNORE_SYNC_ERRORS=TRUE"
         else:
             ignore_sync_errors = ""
+        if settings.IGNORE_IP_CHANGES:
+            ignore_ip_changes = "export IGNORE_IP_CHANGES=TRUE"
+        else:
+            ignore_ip_changes = ""
         script_path.write_text(
             SCRIPT_TEMPLATE.format(
                 repo_path=self.repo_path,
                 python_interpreter=sys.executable,
                 project_path=pathlib.Path(__file__).parent.parent,
                 ignore_sync_errors=ignore_sync_errors,
+                ignore_ip_changes=ignore_ip_changes,
             )
         )
         script_path.chmod(0o755)
