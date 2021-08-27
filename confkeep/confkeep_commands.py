@@ -241,7 +241,7 @@ class CKWrapper:
             )
         for path in to_sync:
             subprocess.run(
-                ["rsync", "-avz", path, pathlib.Path(path).name],
+                ["rsync", "-avz", path, pathlib.Path(path).parent.name],
                 check=not settings.IGNORE_SYNC_ERRORS,
                 cwd=self.work_path,
             )
