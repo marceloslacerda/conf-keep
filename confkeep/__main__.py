@@ -42,18 +42,26 @@ if __name__ == "__main__":
     if command in ("-v", "--version"):
         print(VERSION)
     ckwrapper = confkeep_commands.CKWrapper()
-    if command == confkeep_commands.BOOTSTRAP_COMMAND:
-        ckwrapper.bootstrap_repository()
-    elif command == confkeep_commands.ADD_HOST_COMMAND:
-        ckwrapper.config_host()
-    elif command == confkeep_commands.ADD_WATCH_COMMAND:
-        ckwrapper.track_dir()
-    elif command == confkeep_commands.INSTALL_CRON_COMMAND:
-        ckwrapper.install_cron()
-    elif command == confkeep_commands.SYNC_COMMAND:
-        ckwrapper.watchdog()
-    else:
-        print(f"Unknown command {command}\n")
-        print(help_txt)
+    try:
+        if command == confkeep_commands.BOOTSTRAP_COMMAND:
+            ckwrapper.bootstrap_repository()
+        elif command == confkeep_commands.ADD_HOST_COMMAND:
+            ckwrapper.config_host()
+        elif command == confkeep_commands.ADD_WATCH_COMMAND:
+            ckwrapper.track_dir()
+        elif command == confkeep_commands.INSTALL_CRON_COMMAND:
+            ckwrapper.install_cron()
+        elif command == confkeep_commands.SYNC_COMMAND:
+            ckwrapper.watchdog()
+        else:
+            print(f"Unknown command {command}\n")
+            print(help_txt)
+            exit(1)
+    except confkeep_commands.ConfKeepError as error:
+        if len(error.args) > 0:
+            print(error.args[0])
+        exit(1)
+    except KeyboardInterrupt:
+        print("Aborted by the user")
         exit(1)
     exit(0)

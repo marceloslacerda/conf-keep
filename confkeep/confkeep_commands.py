@@ -21,6 +21,10 @@ INSTALL_CRON_COMMAND = "install-cron"
 CRON_FILE_PATH = pathlib.Path("/etc/cron.d/conf-keep")
 
 
+class ConfKeepError(Exception):
+    pass
+
+
 def with_test_repo(func):
     def wrapper(*args, **kwargs):
         if "self" in kwargs:
@@ -29,9 +33,10 @@ def with_test_repo(func):
             obj = args[0]
         lock_file_path = obj.repo_path / "conf-keep.lock"
         if obj.is_ip_changed():
-            pass  # Notifications already printed
+            raise ConfKeepError()  # Notifications already printed
         elif lock_file_path.is_file():
             print("Another command is running in this repository.")
+            raise ConfKeepError()
         else:
             lock_file_path.touch()
             try:
@@ -72,9 +77,7 @@ class CKWrapper:
             if self.hostname_path.is_file():
                 self._host_name = self.hostname_path.read_text()
             else:
-                raise AttributeError(
-                    "hostname.txt does not exist. Host not configured."
-                )
+                raise ConfKeepError("hostname.txt does not exist. Host not configured.")
         return self._host_name
 
     def initial_hostname_setup(self):
@@ -93,7 +96,7 @@ class CKWrapper:
         if self.hostname_path.is_file():
             return self.repo_path / self.hostname_path.read_text()
         else:
-            raise AttributeError("hostname.txt does not exist. Host not configured.")
+            raise ConfKeepError("hostname.txt does not exist. Host not configured.")
 
     @property
     def tracked_file_path(self):
@@ -150,7 +153,7 @@ class CKWrapper:
                 shutil.rmtree(self.work_path)
                 print("Removed.")
             else:
-                raise FileExistsError("Aborted by user.")
+                raise ConfKeepError("Aborted by user.")
 
         print("Creating a configuration directory for the host.")
         try:
@@ -161,7 +164,7 @@ class CKWrapper:
             ):
                 self.git_command("checkout", self.hostname)
             else:
-                raise
+                raise ConfKeepError("Aborting.")
         self.work_path.mkdir()
         tracked_path = self.tracked_file_path
         tracked_path.touch()
@@ -181,7 +184,7 @@ class CKWrapper:
         """To create the repository"""
         print("Bootstrapping repository")
         if (self.repo_path / ".git").is_dir():
-            raise FileExistsError("Repository already exists. Aborting bootstrap.")
+            raise ConfKeepError("Repository already exists. Aborting bootstrap.")
         self.repo_path.mkdir(exist_ok=True, parents=True)
         self.git_command("init")
         gitignore_path = self.repo_path / ".gitignore"
@@ -224,6 +227,11 @@ class CKWrapper:
     @with_test_repo
     def watchdog(self):
         to_sync = self.tracked_file_path.read_text().splitlines()
+        if not to_sync:
+            raise ConfKeepError(
+                f"No files being monitored yet, use the command {ADD_WATCH_COMMAND} before calling"
+                f" {SYNC_COMMAND}."
+            )
         for path in to_sync:
             subprocess.run(
                 ["rsync", "-avz", path, pathlib.Path(path).name],
