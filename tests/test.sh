@@ -14,7 +14,7 @@ export MONITORED_PATH="/etc"
 python -m confkeep bootstrap
 python -m confkeep add-host
 python -m confkeep watch
+python -m confkeep sync
 python -m confkeep install-cron
 cat /etc/cron.d/conf-keep
 echo > /etc/cron.d/conf-keep
-python -m confkeep sync
