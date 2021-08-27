@@ -32,5 +32,5 @@ jobs:
         black --check .
     - name: Test with pytest
       run: |
-        python -m unitest tests/tests.py
+        python -m unittest tests/tests.py
         sh tests/test.sh
