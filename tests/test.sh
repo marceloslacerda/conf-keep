@@ -9,6 +9,7 @@ git init --bare
 cd ..
 export ASSUME_YES=TRUE
 export IGNORE_SYNC_ERRORS=TRUE
+export IGNORE_IP_CHANGE=TRUE
 export REPO_PATH="$dir/repo-path"
 export REMOTE="$dir/repo-origin"
 export MONITORED_PATH="/etc"

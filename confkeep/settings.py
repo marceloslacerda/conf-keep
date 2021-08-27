@@ -22,6 +22,13 @@ CRON_SCHEDULE = environ.get("CRON_SCHEDULE", "* * * * *")
 CK_USER = environ.get("CONFKEEP_USER", "conf-keep")
 # If set rsync will ignore errors. Useful for testing or when you only want to commit "world-readable" files
 IGNORE_SYNC_ERRORS = environ.get("IGNORE_SYNC_ERRORS", False)
+# Currently conf-keep relies on the ip address of a host to tell whether it's the same host or not, a clone of a
+# machine would have the same hostname but a different ip address, if both machines tried to commit to the same branch
+# of the REMOTE the history would be *soiled* and that would be a pain to clean up.
+#
+# Setting this variable to True disables that checking. That's useful for machines that don't have fixed ips like, one
+# that uses DNS or wifi.
+IGNORE_IP_CHANGES = environ.get("IGNORE_IP_CHANGES", False)
 
 # * Settings without sane defaults
 # These must be changed either interactively or through environment variables.

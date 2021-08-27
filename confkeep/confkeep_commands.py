@@ -112,6 +112,8 @@ class CKWrapper:
         return settings.REMOTE
 
     def is_ip_changed(self):
+        if settings.IGNORE_IP_CHANGES:
+            return False
         original_ip_out = json.loads(self.original_ip_path.read_text())
         new_ip_out = get_ip_interfaces()
         if not self.original_ip_path.is_file():
@@ -241,7 +243,7 @@ class CKWrapper:
             )
         for path in to_sync:
             subprocess.run(
-                ["rsync", "-avz", path, pathlib.Path(path).parent.name],
+                ["rsync", "-EWavz", "--delete", path, pathlib.Path(path).parent.name],
                 check=not settings.IGNORE_SYNC_ERRORS,
                 cwd=self.work_path,
             )
@@ -249,6 +251,8 @@ class CKWrapper:
         commit_message_body = ""
         some_added = False
         some_changed = False
+        some_deleted = False
+        something_else = False
         for change in status[:5]:
             change = str(change.strip(), "utf-8").split(maxsplit=1)
             if change[0] == "??":
@@ -257,14 +261,24 @@ class CKWrapper:
             elif change[0] == "M":
                 some_changed = True
                 commit_message_body += f"\nFile {change[1]} was changed"
+            elif change[0] == "D":
+                some_deleted = True
+                commit_message_body += f"\nFile {change[1]} was deleted"
+            else:
+                something_else = True
+                commit_message_body += f"\nSomething happened to {change[1]} but conf-keep doesn't know what it was"
         if len(status) > 5:
             commit_message_body += f"\nThere are more {len(status) - 5} changes..."
-        if some_added and some_changed:
-            commit_message_head = "Some files were added and changed"
+        if some_added + some_changed + some_deleted + something_else > 1:
+            commit_message_head = "Several files were changed added or deleted"
         elif some_added:
             commit_message_head = "Some file(s) were added"
         elif some_changed:
             commit_message_head = "Some file(s) were changed"
+        elif some_deleted:
+            commit_message_head = "Some file(s) were deleted"
+        elif something_else:
+            commit_message_head = "Some file(s) changed in an unexpected way"
         else:
             print("Nothing changed")
             return
