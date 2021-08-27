@@ -4,6 +4,8 @@ import unittest
 import subprocess
 import shutil
 
+module_dir = pathlib.Path(__file__).parent
+
 
 class MyTestCase(unittest.TestCase):
     @classmethod

@@ -2,3 +2,5 @@
 venv/
 repo-path/
 repo-origin
+__pycache__/
+.pytest_cache/
