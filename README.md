@@ -16,25 +16,27 @@ cd conf-keep
 python -m confkeep --help
 ```
 
+**conf-keep** supports python ≥ `3.6`.
+
 ## Usage
 
 You can use by following 4 simple steps.
 
-1. `conf-keep bootstrap`
+1. `python3 -m confkeep bootstrap`
 
    This will configure the repository you want to use for tracking the changes. 
-2. `conf-keep add-host`
+2. `python3 -m confkeep add-host`
 
    This command will add the current host to the repository.
-3. `conf-keep watch`
+3. `python3 -m confkeep watch`
    
    This is how you specify which file/directory you want to monitor for changes
-4. `conf-keep install-cron`
+4. `python3 -m confkeep install-cron`
 
    This is a helper command that you can use to automatically install an entry to your crontab that will call the
 synchronization command.
 
-5. (Optional) `conf-keep sync`
+5. (Optional) `python3 -m confkeep sync`
 
    This is the command that the *cronfile* calls. You normally don't run this manually.
 

@@ -14,22 +14,23 @@ repository.
 
 You can use by following 4 simple steps.
 
-Step 1 `conf-keep {confkeep_commands.BOOTSTRAP_COMMAND}`
+Step 1 `python3 -m confkeep {confkeep_commands.BOOTSTRAP_COMMAND}`
 This will configure the repository you want to use for tracking the changes. 
-2. `conf-keep {confkeep_commands.ADD_HOST_COMMAND}`
+2. `python3 -m confkeep {confkeep_commands.ADD_HOST_COMMAND}`
 This command will add the current host to the repository.
-3. `conf-keep {confkeep_commands.ADD_WATCH_COMMAND}`
+3. `python3 -m confkeep {confkeep_commands.ADD_WATCH_COMMAND}`
 This is how you specify which file/directory you want to monitor for changes
-4. `conf-keep {confkeep_commands.INSTALL_CRON_COMMAND}` 
+4. `python3 -m confkeep {confkeep_commands.INSTALL_CRON_COMMAND}` 
 This is a helper command that you can use to automatically install an entry to your crontab that will call the
 synchronization command.
 
-(Optional) 5. `conf-keep {confkeep_commands.SYNC_COMMAND}`
+(Optional) 5. `python3 -m confkeep {confkeep_commands.SYNC_COMMAND}`
 This is the command that `{confkeep_commands.INSTALL_CRON_COMMAND}` calls. You normally don't run this manually.
 
-Each command (except for `{confkeep_commands.SYNC_COMMAND}`) is interactive and will guide you through the configuration process.
-If you want to run the command non-interactively check confkeep/confkeep_commands.py to know all the possible environment
-variables you can pass.
+Each command (except for `{confkeep_commands.SYNC_COMMAND}`) is interactive and will guide you through the configuration
+process.
+If you want to run the command non-interactively check confkeep/confkeep_commands.py to know all the possible 
+environment variables you can pass.
 """
 
 if __name__ == "__main__":
