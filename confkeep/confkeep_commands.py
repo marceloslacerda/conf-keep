@@ -307,7 +307,7 @@ class CKWrapper:
         )
         if settings.CK_USER not in pathlib.Path('/etc/passwd').read_text():
             print(f"""Warning! No user "{settings.CK_USER}" detected!
-Please add one with: useradd {settings.CK_USER}
+Please add one with: useradd -m -s /bin/bash {settings.CK_USER}
 Or change the generated cronfile.""")
         print(f"Cronfile installed at {CRON_FILE_PATH}")
 

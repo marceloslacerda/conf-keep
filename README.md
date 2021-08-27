@@ -43,3 +43,24 @@ synchronization command.
 Each command (except for `sync`) is interactive and will guide you through the configuration process.
 If you want to run the command *non-interactively* check [confkeep/settings.py](confkeep/settings.py) to know all the possible environment
 variables you can pass.
+
+## Running as a regular user
+
+If you want to run **conf-keep** with a non-root user you should make sure to have followed some or all of the following
+steps:
+1. Create a user account for it
+2. Give it permissions for the directories that it will be using.
+3. Configure its git credentials.
+4. Set the`CK_USER` environment variable correctly.
+
+Here's an example:
+
+```bash
+sudo useradd -m -s /bin/bash conf-keep
+sudo chown conf-keep /var/backups/local-repo-dir
+sudo -u conf-keep git config --global user.email "user@test.com"
+sudo -u conf-keep git config --global user.name "User Name"
+# This last step assumes that you will add a public ssh key to your git host. Adjust it to your necessities.
+sudo -u conf-keep ssh-keygen
+sudo cat /home/conf-keep/.ssh/id_rsa.pub
+```
