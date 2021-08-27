@@ -9,7 +9,8 @@ import sys
 from confkeep import settings
 
 SCRIPT_TEMPLATE = """#!/bin/sh
-export REPO_PATH={repo_path}
+export REPO_PATH='{repo_path}'
+{ignore_sync_errors}
 cd {project_path}
 {python_interpreter} -m conf-keep sync > /var/log/conf-keep-sync.log 2>&1
 """
@@ -186,9 +187,11 @@ class CKWrapper:
         """To create the repository"""
         print("Bootstrapping repository")
         if (self.repo_path / ".git").is_dir():
-            raise ConfKeepError("Repository already exists. Aborting bootstrap.\n"
-                                f"You can avoid this error by running the following at your own peril.\n"
-                                f"rm -rf {self.repo_path / '.git*'} {self.repo_path / '*'}")
+            raise ConfKeepError(
+                "Repository already exists. Aborting bootstrap.\n"
+                f"You can avoid this error by running the following at your own peril.\n"
+                f"rm -rf {self.repo_path / '.git*'} {self.repo_path / '*'}"
+            )
         self.repo_path.mkdir(exist_ok=True, parents=True)
         self.git_command("init")
         gitignore_path = self.repo_path / ".gitignore"
@@ -296,21 +299,28 @@ class CKWrapper:
     def install_cron(self):
         print("Installing cron file")
         script_path = pathlib.Path("/usr/local/bin/conf-keep-sync")
+        if settings.IGNORE_SYNC_ERRORS:
+            ignore_sync_errors = "export IGNORE_SYNC_ERRORS=TRUE"
+        else:
+            ignore_sync_errors = ""
         script_path.write_text(
             SCRIPT_TEMPLATE.format(
                 repo_path=self.repo_path,
                 python_interpreter=sys.executable,
                 project_path=pathlib.Path(__file__).parent.parent,
+                ignore_sync_errors=ignore_sync_errors,
             )
         )
         script_path.chmod(0o755)
         CRON_FILE_PATH.write_text(
             f"{settings.CRON_SCHEDULE} {settings.CK_USER} {script_path}\n"
         )
-        if settings.CK_USER not in pathlib.Path('/etc/passwd').read_text():
-            print(f"""Warning! No user "{settings.CK_USER}" detected!
+        if settings.CK_USER not in pathlib.Path("/etc/passwd").read_text():
+            print(
+                f"""Warning! No user "{settings.CK_USER}" detected!
 Please add one with: useradd -m -s /bin/bash {settings.CK_USER}
-Or change the generated cronfile.""")
+Or change the generated cronfile."""
+            )
         print(f"Cronfile installed at {CRON_FILE_PATH}")
 
 
