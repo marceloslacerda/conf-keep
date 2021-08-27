@@ -12,7 +12,7 @@ SCRIPT_TEMPLATE = """#!/bin/sh
 export REPO_PATH='{repo_path}'
 {ignore_sync_errors}
 cd {project_path}
-{python_interpreter} -m conf-keep sync > /var/log/conf-keep-sync.log 2>&1
+{python_interpreter} -m confkeep sync > /var/log/conf-keep-sync.log 2>&1
 """
 
 SERVICE_NAME = "conf-keep"

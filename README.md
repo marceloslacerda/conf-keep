@@ -57,8 +57,8 @@ Here's an example:
 
 ```bash
 sudo useradd -m -s /bin/bash conf-keep
-sudo touch /usr/local/bin/conf-keep-sync /etc/cron.d/conf-keep
-sudo chown conf-keep /var/backups/local-repo-dir /usr/local/bin/conf-keep-sync /etc/cron.d/conf-keep
+sudo touch /usr/local/bin/conf-keep-sync /etc/cron.d/conf-keep /var/log/conf-keep-sync.log
+sudo chown conf-keep /var/backups/local-repo-dir /usr/local/bin/conf-keep-sync /etc/cron.d/conf-keep /var/log/conf-keep-sync.log
 sudo su conf-keep
 git config --global user.email "user@test.com"
 git config --global user.name "User Name"
