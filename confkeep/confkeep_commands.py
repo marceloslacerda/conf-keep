@@ -10,7 +10,9 @@ from confkeep import settings
 
 SCRIPT_TEMPLATE = """#!/bin/sh
 export REPO_PATH={repo_path}
-{python_interpreter} -m conf-keep sync > /var/log/conf-keep-sync.log 2>&1"""
+cd {project_path}
+{python_interpreter} -m conf-keep sync > /var/log/conf-keep-sync.log 2>&1
+"""
 
 SERVICE_NAME = "conf-keep"
 ADD_WATCH_COMMAND = "watch"
@@ -294,10 +296,12 @@ class CKWrapper:
         script_path = pathlib.Path("/usr/local/bin/conf-keep-sync")
         script_path.write_text(
             SCRIPT_TEMPLATE.format(
-                repo_path=self.repo_path, python_interpreter=sys.executable
+                repo_path=self.repo_path,
+                python_interpreter=sys.executable,
+                project_path=pathlib.Path(__file__).parent.parent,
             )
         )
-        script_path.chmod(755)
+        script_path.chmod(0o755)
         CRON_FILE_PATH.write_text(
             f"{settings.CRON_SCHEDULE} {settings.CK_USER} {script_path}\n"
         )
