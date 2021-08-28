@@ -51,14 +51,15 @@ steps:
 1. Create a user account for it
 2. Give it permissions for the directories that it will be using.
 3. Configure its git credentials.
-4. Set the`CK_USER` environment variable correctly.
+4. Set the `CK_USER` environment variable correctly.
 
 Here's an example:
 
 ```bash
 sudo useradd -m -s /bin/bash conf-keep
+sudo mkdir /var/backups/conf-keep-repo
 sudo touch /usr/local/bin/conf-keep-sync /etc/cron.d/conf-keep /var/log/conf-keep-sync.log
-sudo chown conf-keep /var/backups/local-repo-dir /usr/local/bin/conf-keep-sync /etc/cron.d/conf-keep /var/log/conf-keep-sync.log
+sudo chown conf-keep /var/backups/conf-keep-repo /usr/local/bin/conf-keep-sync /etc/cron.d/conf-keep /var/log/conf-keep-sync.log
 sudo su conf-keep
 git config --global user.email "user@test.com"
 git config --global user.name "User Name"
@@ -66,4 +67,5 @@ git config --global user.name "User Name"
 ssh-keygen
 cat ~/.ssh/id_rsa.pub
 # Follow the instructions this README.md Usage section.
+# Remember to set the user of /etc/cron.d/conf-keep back to root after the install-cron command
 ```
