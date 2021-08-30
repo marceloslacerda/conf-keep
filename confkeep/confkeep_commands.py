@@ -9,6 +9,7 @@ import sys
 from confkeep import settings
 
 SCRIPT_TEMPLATE = """#!/bin/sh
+export PATH="/bin:/sbin:/usr/bin:/usr/sbin:/usr/local/bin:/usr/local/sbin/:$HOME/.local/bin:$HOME/bin:$PATH"
 export REPO_PATH='{repo_path}'
 {ignore_sync_errors}
 {ignore_ip_changes}
