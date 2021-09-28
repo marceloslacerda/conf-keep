@@ -86,7 +86,8 @@ class CKWrapper:
         return self._host_name
 
     def initial_hostname_setup(self):
-        if settings.ASSUME_YES:
+        """Setup the hostname property and write it to the hostname file."""
+        if settings.ASSUME_YES or settings.ASSUME_NO:
             self._host_name = settings.HOST_NAME
         else:
             self._host_name = input(
@@ -98,6 +99,7 @@ class CKWrapper:
 
     @property
     def work_path(self):
+        """Path that is equal to "local_repository/hostname" """
         if self.hostname_path.is_file():
             return self.repo_path / self.hostname_path.read_text()
         else:
@@ -244,11 +246,17 @@ class CKWrapper:
                 f" {SYNC_COMMAND}."
             )
         for path in to_sync:
-            subprocess.run(
-                ["rsync", "-EWavz", "--delete", path, pathlib.Path(path).parent.name],
-                check=not settings.IGNORE_SYNC_ERRORS,
-                cwd=self.work_path,
-            )
+            path = pathlib.Path(path)
+            if not path.exists():
+                try:
+                    os.remove(self.work_path / path.name)
+                except IsADirectoryError:
+                    shutil.rmtree(self.work_path / path.name)
+            else:
+                subprocess.run(
+                    ["rsync", "-EWavz", "--delete", str(path), self.work_path],
+                    check=not settings.IGNORE_SYNC_ERRORS,
+                )
         status = self.git_command("status", "-s", get_stdout=True).splitlines()
         commit_message_body = ""
         some_added = False
@@ -372,6 +380,9 @@ def is_yes(message):
     if settings.ASSUME_YES:
         print(message + "?")
         return True
+    if settings.ASSUME_NO:
+        print(message + "?")
+        return False
     if not message.endswith("?"):
         message = message + " (y/n)? "
     while True:

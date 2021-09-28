@@ -16,6 +16,8 @@ from os import environ
 HOST_NAME = environ.get("HOST_NAME", platform.node())
 # You must set this one if you want to configure conf-keep non-interactively.
 ASSUME_YES = environ.get("ASSUME_YES", False)
+# Conserviative version of the above variable. Mostly used for debugging.
+ASSUME_NO = environ.get("ASSUME_YES", False)
 # By default conf-keep runs every minute. Change this to however you like.
 CRON_SCHEDULE = environ.get("CRON_SCHEDULE", "* * * * *")
 # This is the user that will run the sync under cron.
