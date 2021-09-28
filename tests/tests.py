@@ -41,17 +41,17 @@ class MyTestCase(unittest.TestCase):
         self.ckwrapper = CKWrapper()
         settings.MONITORED_PATH = self.test_dir_parent
         self.test_dir_parent.mkdir()
-        self.test_child.write_text('first text child')
-        self.test_single_file.write_text('first text single')
+        self.test_child.write_text("first text child")
+        self.test_single_file.write_text("first text single")
 
     def test_bootstrap(self):
         self.ckwrapper.bootstrap_repository()
         self.assertTrue(settings.REPO_PATH.is_dir())
-        self.assertTrue((settings.REMOTE / 'HEAD').is_file())
-        #todo test push
+        self.assertTrue((settings.REMOTE / "HEAD").is_file())
+        # todo test push
 
     def test_bootstrap_repo_already_exists(self):
-        """"Error when bootstrapping twice"""
+        """ "Error when bootstrapping twice"""
         self.ckwrapper.bootstrap_repository()
         with self.assertRaises(confkeep.confkeep_commands.ConfKeepError):
             self.ckwrapper.bootstrap_repository()
@@ -75,10 +75,14 @@ class MyTestCase(unittest.TestCase):
         self.ckwrapper.bootstrap_repository()
         self.ckwrapper.config_host()
         self.ckwrapper.track_dir()
-        self.assertIn(str(self.test_dir_parent), self.ckwrapper.tracked_file_path.read_text())
+        self.assertIn(
+            str(self.test_dir_parent), self.ckwrapper.tracked_file_path.read_text()
+        )
         settings.MONITORED_PATH = self.test_single_file
         self.ckwrapper.track_dir()
-        self.assertIn(str(self.test_single_file), self.ckwrapper.tracked_file_path.read_text())
+        self.assertIn(
+            str(self.test_single_file), self.ckwrapper.tracked_file_path.read_text()
+        )
 
     def test_track_dir_no_absolute(self):
         """Error when tracked dir is not absolute"""
@@ -93,7 +97,7 @@ class MyTestCase(unittest.TestCase):
         self.ckwrapper.config_host()
         self.ckwrapper.track_dir()
         self.ckwrapper.track_dir()
-        tracked = self.ckwrapper.tracked_file_path.read_text().split('\n')
+        tracked = self.ckwrapper.tracked_file_path.read_text().split("\n")
         count = 0
         for path in tracked:
             if str(self.test_dir_parent) in path:
@@ -118,7 +122,7 @@ class MyTestCase(unittest.TestCase):
         self.assertTrue(parent.is_dir())
         self.assertTrue(child.is_file())
         self.assertEqual(self.test_child.read_text(), child.read_text())
-        self.test_child.write_text('second text child')
+        self.test_child.write_text("second text child")
         self.ckwrapper.watchdog()
         self.assertEqual(self.test_child.read_text(), child.read_text())
 
@@ -132,7 +136,7 @@ class MyTestCase(unittest.TestCase):
         self.ckwrapper.watchdog()
         self.assertTrue(single.is_file())
         self.assertEqual(self.test_single_file.read_text(), single.read_text())
-        self.test_single_file.write_text('second text single')
+        self.test_single_file.write_text("second text single")
         self.ckwrapper.watchdog()
         self.assertEqual(self.test_single_file.read_text(), single.read_text())
 
@@ -149,8 +153,8 @@ class MyTestCase(unittest.TestCase):
         self.assertTrue(single.is_file())
         self.assertEqual(self.test_single_file.read_text(), single.read_text())
         self.assertEqual(self.test_child.read_text(), child.read_text())
-        self.test_child.write_text('second text child')
-        self.test_single_file.write_text('second text single')
+        self.test_child.write_text("second text child")
+        self.test_single_file.write_text("second text single")
         self.ckwrapper.watchdog()
         self.assertEqual(self.test_single_file.read_text(), single.read_text())
         self.assertEqual(self.test_child.read_text(), child.read_text())
@@ -177,7 +181,6 @@ class MyTestCase(unittest.TestCase):
 
     def test_install_cron(self):
         self.ckwrapper.install_cron()
-
 
 
 if __name__ == "__main__":
