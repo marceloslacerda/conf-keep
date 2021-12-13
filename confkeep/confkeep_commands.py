@@ -318,7 +318,7 @@ class CKWrapper:
         self.git_command("push", "origin", branch)
 
     def git_add(self, file):
-        self.git_command("add", file)
+        self.git_command("add", "--all", file)
 
     def install_cron(self):
         print("Installing cron file")
