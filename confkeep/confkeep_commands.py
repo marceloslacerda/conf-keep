@@ -252,6 +252,8 @@ class CKWrapper:
                     os.remove(self.work_path / path.name)
                 except IsADirectoryError:
                     shutil.rmtree(self.work_path / path.name)
+                except FileNotFoundError:
+                    pass  # No problem if what you tried to remove is already gone
             else:
                 subprocess.run(
                     ["rsync", "-EWavz", "--delete", str(path), self.work_path],
