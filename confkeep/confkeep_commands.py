@@ -130,7 +130,7 @@ class CKWrapper:
             return False
         else:
             print(
-                f"ip output changed! Please ensure that {self.work_path} is the name of this host, change"
+                f"ip output changed! Please ensure that {self.hostname} is the name of this host, change"
                 f" {self.hostname_path} accordingly and remove {self.original_ip_path} once you are done."
             )
             self.new_ip_path.write_text(json.dumps(new_ip_out))
