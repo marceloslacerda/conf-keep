@@ -118,30 +118,30 @@ class CKWrapper:
     def is_ip_changed(self):
         if settings.IGNORE_IP_CHANGES:
             return False
-        original_ip_out = json.loads(self.original_ip_path.read_text())
         new_ip_out = get_ip_interfaces()
         if not self.original_ip_path.is_file():
-            print("Original was removed. Adding a new one")
+            print("original-ip.txt was removed. Adding a new one")
             self.original_ip_path.write_text(json.dumps(new_ip_out))
             return False
+
+        original_ip_out = json.loads(self.original_ip_path.read_text())
+        if original_ip_out == new_ip_out:
+            print("ip output haven't changed.")
+            return False
         else:
-            if original_ip_out == new_ip_out:
-                print("ip output haven't changed.")
-                return False
-            else:
-                print(
-                    f"ip output changed! Please ensure that {self.work_path} is the name of this host, change"
-                    f" {self.hostname_path} accordingly and remove {self.original_ip_path} once you are done."
-                )
-                self.new_ip_path.write_text(json.dumps(new_ip_out))
-                subprocess.run(
-                    [
-                        "diff",
-                        self.original_ip_path.absolute(),
-                        self.new_ip_path.absolute(),
-                    ]
-                )
-                return True
+            print(
+                f"ip output changed! Please ensure that {self.work_path} is the name of this host, change"
+                f" {self.hostname_path} accordingly and remove {self.original_ip_path} once you are done."
+            )
+            self.new_ip_path.write_text(json.dumps(new_ip_out))
+            subprocess.run(
+                [
+                    "diff",
+                    self.original_ip_path.absolute(),
+                    self.new_ip_path.absolute(),
+                ]
+            )
+            return True
 
     def config_host(self):
         """To add another host to the repository"""
