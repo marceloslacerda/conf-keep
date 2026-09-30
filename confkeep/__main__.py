@@ -54,6 +54,8 @@ if __name__ == "__main__":
             ckwrapper.install_cron()
         elif command == confkeep_commands.SYNC_COMMAND:
             ckwrapper.watchdog()
+        elif command == confkeep_commands.UPDATE_IP:
+            ckwrapper.update_ip()
         else:
             print(f"Unknown command {command}\n")
             print(help_txt)

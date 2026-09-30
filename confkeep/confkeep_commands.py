@@ -23,7 +23,7 @@ ADD_HOST_COMMAND = "add-host"
 BOOTSTRAP_COMMAND = "bootstrap"
 SYNC_COMMAND = "sync"
 INSTALL_CRON_COMMAND = "install-cron"
-CRON_FILE_PATH = pathlib.Path("/etc/cron.d/conf-keep")
+UPDATE_IP = "update-ip"
 
 
 class ConfKeepError(Exception):
@@ -38,7 +38,7 @@ def with_test_repo(func):
             obj = args[0]
         lock_file_path = obj.repo_path / "conf-keep.lock"
         if obj.is_ip_changed():
-            raise ConfKeepError()  # Notifications already printed
+            raise ConfKeepError("ip changed error")  # Notifications already printed
         elif lock_file_path.is_file():
             print("Another command is running in this repository.")
             raise ConfKeepError()
@@ -67,10 +67,6 @@ class CKWrapper:
     @property
     def original_ip_path(self):
         return self.repo_path / "original-ip.txt"
-
-    @property
-    def new_ip_path(self):
-        return self.repo_path / "new-ip.txt"
 
     @property
     def hostname_path(self):
@@ -118,28 +114,21 @@ class CKWrapper:
     def is_ip_changed(self):
         if settings.IGNORE_IP_CHANGES:
             return False
-        new_ip_out = get_ip_interfaces()
+        new_ips = get_ip_interfaces()
         if not self.original_ip_path.is_file():
             print("original-ip.txt was removed. Adding a new one")
-            self.original_ip_path.write_text(json.dumps(new_ip_out))
+            self.update_ip()
             return False
 
-        original_ip_out = json.loads(self.original_ip_path.read_text())
-        if original_ip_out == new_ip_out:
-            print("ip output haven't changed.")
+        original_ip_out = self.original_ip_path.read_text()
+        if original_ip_out in new_ips:
+            print("ip haven't changed.")
             return False
         else:
             print(
-                f"ip output changed! Please ensure that {self.hostname} is the name of this host, change"
-                f" {self.hostname_path} accordingly and remove {self.original_ip_path} once you are done."
-            )
-            self.new_ip_path.write_text(json.dumps(new_ip_out))
-            subprocess.run(
-                [
-                    "diff",
-                    self.original_ip_path.absolute(),
-                    self.new_ip_path.absolute(),
-                ]
+                f"ip changed! Please ensure that {self.hostname} is the name of this host.\n"
+                f"If you are sure that this is the correct host, run conf-keep"
+                " with the {UPDATE_IP} command."
             )
             return True
 
@@ -177,8 +166,7 @@ class CKWrapper:
         self.work_path.mkdir()
         tracked_path = self.tracked_file_path
         tracked_path.touch()
-        with self.original_ip_path.open("w") as original_ip:
-            original_ip.write(json.dumps(get_ip_interfaces()))
+        self.update_ip()
         self.git_add(tracked_path.absolute())
         self.git_add(self.original_ip_path.absolute())
         self.git_commit_am(f"Host {self.hostname} added to the repo")
@@ -188,6 +176,16 @@ class CKWrapper:
             f"changes. Add new files or directories to track with the command "
             f"{ADD_WATCH_COMMAND}."
         )
+
+    def update_ip(self):
+        with self.original_ip_path.open("w") as original_ip:
+            if settings.HOST_IP is not None:
+                original_ip.write(settings.HOST_IP)
+            else:
+                print(
+                    "Please enter the ip of this host. If it changes, conf-keep will stop syncing this host."
+                )
+                original_ip.write(input())
 
     def bootstrap_repository(self):
         """To create the repository"""
@@ -323,8 +321,8 @@ class CKWrapper:
         self.git_command("add", "--all", file)
 
     def install_cron(self):
-        print("Installing cron file")
-        script_path = pathlib.Path("/usr/local/bin/conf-keep-sync")
+        print("Installing cron file and sync script")
+        script_path = settings.BIN_PATH / "conf-keep-sync"
         if settings.IGNORE_SYNC_ERRORS:
             ignore_sync_errors = "export IGNORE_SYNC_ERRORS=TRUE"
         else:
@@ -343,32 +341,27 @@ class CKWrapper:
             )
         )
         script_path.chmod(0o755)
-        CRON_FILE_PATH.write_text(
+        settings.CRON_FILE_PATH.write_text(
             f"{settings.CRON_SCHEDULE} {settings.CK_USER} {script_path}\n"
         )
         if settings.CK_USER not in pathlib.Path("/etc/passwd").read_text():
-            print(
-                f"""Warning! No user "{settings.CK_USER}" detected!
+            print(f"""Warning! No user "{settings.CK_USER}" detected!
 Please add one with: useradd -m -s /bin/bash {settings.CK_USER}
-Or change the generated cronfile."""
-            )
-        print(f"Cronfile installed at {CRON_FILE_PATH}")
+Or change the generated cronfile.""")
+        print(f"Cronfile installed at {settings.CRON_FILE_PATH}")
 
 
 def get_ip_interfaces():
+    """Returns a list of strings with each ip used by this host."""
     out = subprocess.run(["ip", "a"], stdout=subprocess.PIPE, encoding="utf-8").stdout
-    interfaces = {}
-    ips = None
+    ips = []
     for line in out.splitlines():
         line = line.strip()
-        match = re.match(r"\d+: (\w+): ", line)
-        if match:
-            ips = []
-            interfaces[match.group(1)] = ips
-        else:
-            if line.startswith("inet"):
-                ips.append(line.split(maxsplit=2)[1])
-    return interfaces
+        if line.startswith("inet"):
+            ip_network = line.split(maxsplit=2)[1]
+            ip = ip_network.split("/")[0]
+            ips.append(ip)
+    return ips
 
 
 def get_gitignore():

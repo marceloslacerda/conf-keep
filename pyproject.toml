@@ -1,0 +1,16 @@
+[project]
+name = "conf-keep"
+version = "0.2.0"
+dependencies = []
+
+[dependency-groups]
+dev = [
+    "black>=26.5.1"
+]
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["confkeep"]

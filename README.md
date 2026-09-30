@@ -40,9 +40,19 @@ synchronization command.
 
    This is the command that the *cronfile* calls. You normally don't run this manually.
 
+6. (Optional) `python3 -m confkeep update-ip`
+
+   This command updates the ip that this host is associated with. conf-keep will refuse to sync a host
+   if it thinks that the host changed its ip*.
+
 Each command (except for `sync`) is interactive and will guide you through the configuration process.
 If you want to run the command *non-interactively* check [confkeep/settings.py](confkeep/settings.py) to know all the possible environment
 variables you can pass.
+
+> *- The reason as to why conf-keep will refuse to sync if the ip changes is that, some times, hosts
+> configs are copied between machines, meaning that if two machines have the same hostname and
+> both have changes to their configurations both will try to commit to the same branch on the
+> repository, possibly, muddling the changes history for both machines.
 
 ## Running as a regular user
 
@@ -68,4 +78,12 @@ ssh-keygen
 cat ~/.ssh/id_rsa.pub
 # Follow the instructions this README.md Usage section.
 # Remember to set the user of /etc/cron.d/conf-keep back to root after the install-cron command
+```
+
+## Running the unit tests
+
+You can run the unit tests like this, no need to setup a virtual environment:
+
+```sh
+python -m unittest tests/tests.py
 ```
