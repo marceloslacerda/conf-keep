@@ -44,6 +44,6 @@ MONITORED_PATH = get_path_environ("MONITORED_PATH", None)
 # Host IP
 HOST_IP = environ.get("HOST_IP", None)
 # Path where a synchronization script will be installed
-BIN_PATH =  pathlib.Path(environ.get("BIN_PATH", "/usr/local/bin"))
+BIN_PATH = pathlib.Path(environ.get("BIN_PATH", "/usr/local/bin"))
 # Cron path where conf-keep will be scheduled
 CRON_FILE_PATH = pathlib.Path(environ.get("BIN_PATH", "/etc/cron.d/conf-keep"))

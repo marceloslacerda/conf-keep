@@ -7,8 +7,6 @@ import subprocess
 import shutil
 
 
-
-
 class MyTestCase(unittest.TestCase):
     test_dir_parent = pathlib.Path("test-dir").absolute()
     test_single_file = pathlib.Path("single-file").absolute()
@@ -23,7 +21,7 @@ class MyTestCase(unittest.TestCase):
         settings.BIN_PATH = pathlib.Path("bin-path")
         settings.BIN_PATH.mkdir(exist_ok=True)
         settings.CRON_FILE_PATH = pathlib.Path("cron-file")
-    
+
     @classmethod
     def tearDownClass(cls):
         shutil.rmtree(settings.BIN_PATH, ignore_errors=True)
@@ -41,7 +39,7 @@ class MyTestCase(unittest.TestCase):
     def setUp(self):
         settings.ASSUME_YES = True
         settings.ASSUME_NO = False
-        settings.HOST_IP = '127.0.0.1'
+        settings.HOST_IP = "127.0.0.1"
         self.tearDown()
         settings.REMOTE.mkdir()
         subprocess.run(["git", "init", "--bare"], cwd=settings.REMOTE)
@@ -190,25 +188,23 @@ class MyTestCase(unittest.TestCase):
         self.ckwrapper.install_cron()
         self.assertTrue(settings.CRON_FILE_PATH.exists())
         self.assertTrue((settings.BIN_PATH / "conf-keep-sync").exists())
-    
+
     def test_update_ip(self):
         old_ip = settings.HOST_IP
-        new_ip = '255.255.255.255'
+        new_ip = "255.255.255.255"
         self.ckwrapper.bootstrap_repository()
         self.ckwrapper.config_host()
         self.assertEqual(self.ckwrapper.original_ip_path.read_text(), old_ip)
         settings.HOST_IP = new_ip
         self.ckwrapper.update_ip()
         self.assertEqual(self.ckwrapper.original_ip_path.read_text(), new_ip)
-    
+
     def test_change_ip(self):
-        new_ip = '255.255.255.255'
+        new_ip = "255.255.255.255"
         settings.HOST_IP = new_ip
         self.ckwrapper.bootstrap_repository()
         self.ckwrapper.config_host()
         self.assertRaises(ConfKeepError, self.ckwrapper.watchdog)
-        
-        
 
 
 if __name__ == "__main__":
