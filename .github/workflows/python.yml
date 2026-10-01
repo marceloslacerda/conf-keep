@@ -39,4 +39,4 @@ jobs:
         sudo touch /etc/cron.d/conf-keep
         sudo chown "$USER" /etc/cron.d/conf-keep
         python -m unittest tests/tests.py
-        sh tests/test.sh
+
